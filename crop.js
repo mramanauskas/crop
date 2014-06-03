@@ -27,6 +27,23 @@
     return parseInt(val, 10);
   }
 
+  function getDataset(element){
+    var attributes = element.attributes,
+        dataset = {},
+        iter,
+        key,
+        value;
+
+    for (iter = attributes.length; iter--; ){
+      if (/^data-.*/.test(attributes[iter].name)) {
+        key = attributes[iter].name.replace('data-', '');
+        value = element.getAttribute(attributes[iter].name);
+        dataset[key] = value;
+      }
+    }
+    return dataset;
+  }
+
   function extend() {
     var iter;
 
@@ -87,7 +104,7 @@
      * Destroys crop instance.
      */
     destroy: function () {
-      var data = this.el.dataset;
+      var data = this.el.dataset || getDataset(this.el);
 
       delete data.width;
       delete data.height;
@@ -113,7 +130,7 @@
       var containerSize = getContainerSize.call(this),
           size = getImageSize.call(this),
           position = getImagePosition.call(this),
-          data = this.imageEl.dataset,
+          data = this.imageEl.dataset || getDataset(this.imageEl),
           widthRatio, heightRatio,
           point1, point2;
 
@@ -142,7 +159,7 @@
     positionImage: function (x, y) {
       var containerSize = getContainerSize.call(this),
           size = getImageSize.call(this),
-          data = this.imageEl.dataset,
+          data = this.imageEl.dataset || getDataset(this.imageEl),
           position = {
             left: 'auto',
             right: 'auto',
@@ -174,8 +191,13 @@
       style.top = position.top;
       style.bottom = position.bottom;
 
-      data.x = x;
-      data.y = y;
+      if (this.imageEl.dataset) {
+        data.x = x;
+        data.y = y;
+      } else {
+        this.imageEl.setAttribute('data-x', x);
+        this.imageEl.setAttribute('data-y', y);
+      }
 
       if (typeof this.opts.onChange === 'function') {
         this.opts.onChange(this.el, this.getCoords());
@@ -193,7 +215,7 @@
      */
     resizeImage: function (width, height) {
       var containerSize = getContainerSize.call(this),
-          data = this.imageEl.dataset,
+          data = this.imageEl.dataset || getDataset(this.imageEl),
           aspectRatio = data.originalWidth / data.originalHeight,
           newWidth = containerSize[0],
           newHeight = containerSize[1];
@@ -274,7 +296,7 @@
   function initializeImage(point1, point2) {
     var containerSize = getContainerSize.call(this),
         size = getImageSize.call(this),
-        data = this.imageEl.dataset,
+        data = this.imageEl.dataset || getDataset(this.imageEl),
         widthRatio, heightRatio;
 
     if (!point1) {
@@ -285,8 +307,13 @@
     widthRatio = containerSize[0] / (point2[0] - point1[0]);
     heightRatio = containerSize[1] / (point2[1] - point1[1]);
 
-    data.originalWidth = size[0];
-    data.originalHeight = size[1];
+    if (this.imageEl.dataset) {
+      data.originalWidth = size[0];
+      data.originalHeight = size[1];
+    } else {
+      this.imageEl.setAttribute('data-originalWidth', size[0]);
+      this.imageEl.setAttribute('data-originalHeight', size[1]);
+    }
 
     if (this.resizeImage(size[0] * widthRatio, size[1] * heightRatio)) {
       return !!this.positionImage(-1 * point1[0] * widthRatio, -1 * point1[1] * heightRatio);
@@ -371,18 +398,28 @@
    * @returns {Array} Size as [width, height]
    */
   function getContainerSize() {
-    var data = this.el.dataset,
+    var data = this.el.dataset || getDataset(this.el),
         style,
         borderWidth,
-        borderHeight;
+        borderHeight,
+        width,
+        height;
 
     if (!data.width || !data.height) {
       style = getComputedStyle(this.el, null);
       borderWidth = int(style.getPropertyValue('border-left-width')) + int(style.getPropertyValue('border-right-width'));
       borderHeight = int(style.getPropertyValue('border-top-width')) + int(style.getPropertyValue('border-bottom-width'));
 
-      data.width = this.el.offsetWidth - borderWidth;
-      data.height = this.el.offsetHeight - borderHeight;
+      width = this.el.offsetWidth - borderWidth;
+      height = this.el.offsetHeight - borderHeight;
+
+      if (this.el.dataset) {
+        data.width = width;
+        data.height = height;
+      } else {
+        this.el.setAttribute('data-width', width);
+        this.el.setAttribute('data-height', height);
+      }
     }
 
     return [int(data.width), int(data.height)];
@@ -405,7 +442,7 @@
    * @returns {Array} Position as [x, y].
    */
   function getImagePosition() {
-    var data = this.imageEl.dataset;
+    var data = this.imageEl.dataset || getDataset(this.imageEl);
 
     return [int(data.x), int(data.y)];
   }
